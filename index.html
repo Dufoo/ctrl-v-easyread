@@ -99,7 +99,12 @@
                     <p class="text-sm font-medium">Paste text on the left and click "Simplify" to begin.</p>
                 </div>
 
-                <!-- Real Output Text -->
+                <!-- Summary Alert Card (Excluded from reading engine) -->
+                <div id="summary-card" class="mb-4 p-3 border-l-4 rounded-r text-sm hidden transition-colors duration-200">
+                    <strong>💡 Quick Summary:</strong> This text was processed to remove difficult vocabulary and jargon. Read the simplified version below. Any simplified words are highlighted.
+                </div>
+
+                <!-- Real Output Text (TTS will ONLY read this) -->
                 <div id="output-content" class="text-slate-700 leading-relaxed text-base whitespace-pre-line hidden">
                 </div>
             </div>
@@ -191,6 +196,7 @@
             const outputDesc = document.getElementById('output-desc');
             const outputContent = document.getElementById('output-content');
             const clearBtn = document.getElementById('clear-btn');
+            const summaryCard = document.getElementById('summary-card');
 
             // Reset components to base states
             body.className = "transition-colors duration-200 min-h-screen flex flex-col ";
@@ -312,6 +318,30 @@
                 isDyslexic = false; // Toggle trick to re-enable correct styles
                 toggleDyslexiaFont();
             }
+
+            // Sync alert box styles
+            updateSummaryCardStyle();
+        }
+
+        // Dynamically style the summary box
+        function updateSummaryCardStyle() {
+            const summaryCard = document.getElementById('summary-card');
+            summaryCard.className = "mb-4 p-3 border-l-4 rounded-r text-sm transition-colors duration-200 ";
+            if (currentMode === 'dark') {
+                summaryCard.className += "bg-slate-950 border-blue-500 text-slate-300";
+            } else if (currentMode === 'high') {
+                summaryCard.className += "bg-black border-yellow-400 text-yellow-300 border-2";
+            } else {
+                summaryCard.className += "bg-blue-50 border-blue-500 text-blue-900";
+            }
+
+            // Retain hidden/block status
+            const isHidden = document.getElementById('output-content').classList.contains('hidden');
+            if (isHidden) {
+                summaryCard.classList.add('hidden');
+            } else {
+                summaryCard.classList.remove('hidden');
+            }
         }
 
         // Clear input & output
@@ -319,11 +349,12 @@
             document.getElementById('input-text').value = '';
             document.getElementById('output-content').innerHTML = '';
             document.getElementById('output-content').classList.add('hidden');
+            document.getElementById('summary-card').classList.add('hidden');
             document.getElementById('empty-state').classList.remove('hidden');
             stopSpeaking();
         }
 
-        // Text-to-Speech
+        // Text-to-Speech (Only reads output-content, ignoring summary-card)
         function speakText() {
             const text = document.getElementById('output-content').innerText;
             if (!text) return;
@@ -363,15 +394,21 @@
             const emptyState = document.getElementById('empty-state');
             const loadingState = document.getElementById('loading-state');
             const outputContent = document.getElementById('output-content');
+            const summaryCard = document.getElementById('summary-card');
 
             emptyState.classList.add('hidden');
             outputContent.classList.add('hidden');
+            summaryCard.classList.add('hidden');
             loadingState.classList.remove('hidden');
 
             // Simulate AI Processing delay
             setTimeout(() => {
                 loadingState.classList.add('hidden');
                 outputContent.classList.remove('hidden');
+                
+                // Style and reveal the Summary Card
+                updateSummaryCardStyle();
+                summaryCard.classList.remove('hidden');
 
                 // Generate smart summary
                 const simplified = simplifyTextAlgorithm(text);
@@ -427,20 +464,8 @@
                 processedParagraphs.push(simplifiedParagraph);
             });
 
-            // Summary styling matches current theme
-            let alertBoxClass = "bg-blue-50 border-blue-500 text-blue-900";
-            if (currentMode === 'dark') {
-                alertBoxClass = "bg-slate-950 border-blue-500 text-slate-300";
-            } else if (currentMode === 'high') {
-                alertBoxClass = "bg-black border-yellow-400 text-yellow-300 border-2";
-            }
-
-            let resultHTML = `<div class="mb-4 p-3 border-l-4 rounded-r text-sm ${alertBoxClass}">
-                <strong>💡 Quick Summary:</strong> This text was processed to remove difficult vocabulary and jargon. Read the simplified version below. Any simplified words are highlighted.
-            </div>`;
-
-            resultHTML += processedParagraphs.map(p => `<p class="mb-4">${p}</p>`).join('');
-            return resultHTML;
+            // Return strictly HTML paragraphs (Alert/Summary box is handled in its own container)
+            return processedParagraphs.map(p => `<p class="mb-4">${p}</p>`).join('');
         }
     </script>
 </body>
